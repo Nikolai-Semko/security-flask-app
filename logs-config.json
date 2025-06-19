@@ -1,0 +1,10 @@
+[
+  {
+    "category": "AppServiceConsoleLogs",
+    "enabled": true
+  },
+  {
+    "category": "AppServiceHTTPLogs", 
+    "enabled": true
+  }
+]
