@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Lab Testing Interface (CORS-Free)</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+        }
+        .header {
+            text-align: center;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+        .api-url {
+            text-align: center;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            font-family: monospace;
+            color: #495057;
+            word-break: break-all;
+        }
+        .test-section {
+            margin-bottom: 25px;
+            padding: 20px;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            background: #ffffff;
+            transition: all 0.3s ease;
+        }
+        .test-section:hover {
+            border-color: #007acc;
+            box-shadow: 0 4px 15px rgba(0,122,204,0.1);
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #333;
+            border-bottom: 2px solid #007acc;
+            padding-bottom: 8px;
+        }
+        button {
+            background: linear-gradient(45deg, #007acc, #0056b3);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 8px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0,122,204,0.3);
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,122,204,0.4);
+        }
+        button.danger {
+            background: linear-gradient(45deg, #dc3545, #a71d2a);
+            box-shadow: 0 2px 8px rgba(220,53,69,0.3);
+        }
+        button.danger:hover {
+            box-shadow: 0 4px 15px rgba(220,53,69,0.4);
+        }
+        button.success {
+            background: linear-gradient(45deg, #28a745, #1e7e34);
+            box-shadow: 0 2px 8px rgba(40,167,69,0.3);
+        }
+        textarea, input {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-family: 'Courier New', monospace;
+            background: #f8f9fa;
+            transition: border-color 0.3s ease;
+        }
+        textarea:focus, input:focus {
+            outline: none;
+            border-color: #007acc;
+            background: white;
+        }
+        .response {
+            background: #1e1e1e;
+            color: #f8f8f2;
+            border: 2px solid #333;
+            padding: 15px;
+            margin-top: 15px;
+            border-radius: 8px;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .success {
+            border-color: #28a745;
+            background: #d4edda;
+            color: #155724;
+        }
+        .error {
+            border-color: #dc3545;
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .info {
+            background: #d1ecf1;
+            border: 2px solid #bee5eb;
+            color: #0c5460;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        .status-online { background: #28a745; }
+        .status-offline { background: #dc3545; }
+        .curl-command {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 10px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 12px;
+            margin-top: 10px;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="header">🔐 Security Lab Testing Interface</h1>
+        <div class="api-url">
+            <strong>API Base URL:</strong> https://security-lab-93823-20250618.azurewebsites.net
+        </div>
+        <div class="info">
+            <strong>⚠️ CORS Issue Detected:</strong> This interface uses alternative methods to bypass CORS restrictions.
+            <br><strong>💡 Tip:</strong> Use the curl commands shown below each test for direct terminal access.
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="test-section">
+            <h3>📊 Health Check <span id="healthStatus" class="status-indicator status-offline"></span></h3>
+            <button onclick="testHealth()" class="success">Test Health Endpoint</button>
+            <button onclick="copyHealthCurl()">Copy curl Command</button>
+            <div id="healthResponse" class="response" style="display: none;"></div>
+            <div id="healthCurl" class="curl-command" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>📋 Security Logs</h3>
+            <button onclick="getLogs()">Get All Logs</button>
+            <button onclick="clearLogs()" class="danger">Clear All Logs</button>
+            <button onclick="copyLogsCurl()">Copy curl Commands</button>
+            <div id="logsResponse" class="response" style="display: none;"></div>
+            <div id="logsCurl" class="curl-command" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🚨 SQL Injection Simulation</h3>
+            <textarea id="sqlQuery" rows="3" placeholder="Enter SQL injection payload...">SELECT * FROM users WHERE id = 1 OR 1=1</textarea>
+            <button onclick="testSQLInjection()" class="danger">Simulate SQL Injection</button>
+            <button onclick="copySqlCurl()">Copy curl Command</button>
+            <div id="sqlResponse" class="response" style="display: none;"></div>
+            <div id="sqlCurl" class="curl-command" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🕸️ XSS Attack Simulation</h3>
+            <textarea id="xssPayload" rows="3" placeholder="Enter XSS payload...">&lt;script&gt;alert('XSS Attack')&lt;/script&gt;</textarea>
+            <button onclick="testXSS()" class="danger">Simulate XSS Attack</button>
+            <button onclick="copyXssCurl()">Copy curl Command</button>
+            <div id="xssResponse" class="response" style="display: none;"></div>
+            <div id="xssCurl" class="curl-command" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>📊 Azure Log Analytics Quick Links</h3>
+            <button onclick="openAzureLogs()" class="success">Open Azure Portal Logs</button>
+            <button onclick="showKqlQueries()">Show KQL Queries</button>
+            <div id="kqlQueries" class="response" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        const baseUrl = 'https://security-lab-93823-20250618.azurewebsites.net';
+
+        // Попытка обойти CORS через fetch с разными режимами
+        async function corsRequest(url, options = {}) {
+            const methods = [
+                // Метод 1: обычный fetch
+                () => fetch(url, options),
+                // Метод 2: no-cors режим (ограниченный)
+                () => fetch(url, {...options, mode: 'no-cors'}),
+                // Метод 3: через jsonp (только для GET)
+                () => options.method === 'GET' ? jsonpRequest(url) : Promise.reject('JSONP only for GET')
+            ];
+
+            for (const method of methods) {
+                try {
+                    const response = await method();
+                    if (response.ok || response.type === 'opaque') {
+                        return {
+                            success: true,
+                            data: response.type === 'opaque' ? {message: 'Request sent (CORS blocked response)'} : await response.json(),
+                            method: method.name || 'fetch'
+                        };
+                    }
+                } catch (error) {
+                    console.log(`Method failed: ${error.message}`);
+                }
+            }
+
+            return {
+                success: false,
+                error: 'All methods failed - CORS blocking detected',
+                fallback: true
+            };
+        }
+
+        function jsonpRequest(url) {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                const callbackName = 'callback_' + Date.now();
+                
+                window[callbackName] = function(data) {
+                    resolve({ok: true, json: () => Promise.resolve(data)});
+                    document.head.removeChild(script);
+                    delete window[callbackName];
+                };
+
+                script.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + callbackName;
+                script.onerror = () => reject(new Error('JSONP failed'));
+                document.head.appendChild(script);
+            });
+        }
+
+        function displayResponse(elementId, response, curlCommand = '') {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            
+            if (response.success) {
+                element.className = 'response success';
+                element.textContent = JSON.stringify(response.data, null, 2);
+                if (response.method) {
+                    element.textContent += `\n\n✅ Method used: ${response.method}`;
+                }
+            } else if (response.fallback) {
+                element.className = 'response error';
+                element.textContent = `❌ ${response.error}\n\n💡 Use the curl command below instead:`;
+                if (curlCommand) {
+                    showCurlCommand(elementId.replace('Response', 'Curl'), curlCommand);
+                }
+            } else {
+                element.className = 'response error';
+                element.textContent = response.error || JSON.stringify(response.data, null, 2);
+            }
+        }
+
+        function showCurlCommand(elementId, command) {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.textContent = command;
+        }
+
+        async function testHealth() {
+            const curlCommand = `curl ${baseUrl}/api/health`;
+            const response = await corsRequest(`${baseUrl}/api/health`);
+            displayResponse('healthResponse', response, curlCommand);
+            
+            // Обновляем статус индикатор
+            const statusEl = document.getElementById('healthStatus');
+            if (response.success) {
+                statusEl.className = 'status-indicator status-online';
+            }
+        }
+
+        async function getLogs() {
+            const curlCommand = `curl ${baseUrl}/api/logs`;
+            const response = await corsRequest(`${baseUrl}/api/logs`);
+            displayResponse('logsResponse', response, curlCommand);
+        }
+
+        async function clearLogs() {
+            const curlCommand = `curl -X POST ${baseUrl}/api/clear-logs -H "Content-Type: application/json"`;
+            const response = await corsRequest(`${baseUrl}/api/clear-logs`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'}
+            });
+            displayResponse('logsResponse', response, curlCommand);
+        }
+
+        async function testSQLInjection() {
+            const query = document.getElementById('sqlQuery').value;
+            const curlCommand = `curl -X POST ${baseUrl}/api/attack/sql -H "Content-Type: application/json" -d "{\\"query\\": \\"${query.replace(/"/g, '\\"')}\\"}"`;
+            
+            const response = await corsRequest(`${baseUrl}/api/attack/sql`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ query: query })
+            });
+            displayResponse('sqlResponse', response, curlCommand);
+        }
+
+        async function testXSS() {
+            const payload = document.getElementById('xssPayload').value;
+            const curlCommand = `curl -X POST ${baseUrl}/api/attack/xss -H "Content-Type: application/json" -d "{\\"payload\\": \\"${payload.replace(/"/g, '\\"').replace(/</g, '\\<').replace(/>/g, '\\>')}\\"}"`;
+            
+            const response = await corsRequest(`${baseUrl}/api/attack/xss`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ payload: payload })
+            });
+            displayResponse('xssResponse', response, curlCommand);
+        }
+
+        // Функции копирования curl команд
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Copied to clipboard!');
+            });
+        }
+
+        function copyHealthCurl() {
+            copyToClipboard(`curl ${baseUrl}/api/health`);
+        }
+
+        function copyLogsCurl() {
+            copyToClipboard(`curl ${baseUrl}/api/logs`);
+        }
+
+        function copySqlCurl() {
+            const query = document.getElementById('sqlQuery').value;
+            copyToClipboard(`curl -X POST ${baseUrl}/api/attack/sql -H "Content-Type: application/json" -d "{\\"query\\": \\"${query.replace(/"/g, '\\"')}\\"}"`)
+        }
+
+        function copyXssCurl() {
+            const payload = document.getElementById('xssPayload').value;
+            copyToClipboard(`curl -X POST ${baseUrl}/api/attack/xss -H "Content-Type: application/json" -d "{\\"payload\\": \\"${payload.replace(/"/g, '\\"').replace(/</g, '\\<').replace(/>/g, '\\>')}\\"}"`)
+        }
+
+        function openAzureLogs() {
+            const url = 'https://portal.azure.com/#@/resource/subscriptions/10014dd-6e2a-4e4d-b476-267627a09dfa/resourceGroups/rg-security-lab/providers/Microsoft.OperationalInsights/workspaces/law-security-lab/logs';
+            window.open(url, '_blank');
+        }
+
+        function showKqlQueries() {
+            const kqlQueries = `// HTTP requests in last 2 hours
+AppServiceHTTPLogs
+| where TimeGenerated > ago(2h)
+| project TimeGenerated, CsMethod, CsUriStem, ScStatus
+| order by TimeGenerated desc
+
+// Search for attacks
+AppServiceHTTPLogs
+| where TimeGenerated > ago(2h)
+| where CsUriStem contains "attack"
+| project TimeGenerated, CsMethod, CsUriStem, ScStatus
+| order by TimeGenerated desc
+
+// API usage statistics
+AppServiceHTTPLogs
+| where TimeGenerated > ago(2h)
+| where CsUriStem contains "/api/"
+| summarize count() by CsUriStem
+| order by count_ desc
+
+// Console logs
+AppServiceConsoleLogs
+| where TimeGenerated > ago(2h)
+| project TimeGenerated, ResultDescription
+| order by TimeGenerated desc`;
+
+            const element = document.getElementById('kqlQueries');
+            element.style.display = 'block';
+            element.textContent = kqlQueries;
+        }
+
+        // Автоматический тест при загрузке
+        window.onload = function() {
+            console.log('Security Lab Testing Interface loaded!');
+            testHealth();
+        };
+    </script>
+</body>
+</html>
