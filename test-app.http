@@ -1,0 +1,114 @@
+### Testing Flask application for security logs generation
+
+### 1. Application health check
+GET {{base_url}}/health
+Content-Type: application/json
+
+### 2. Home page
+GET {{base_url}}/
+Content-Type: application/json
+
+### 3. Successful authentication (valid credentials)
+POST {{base_url}}/login
+Content-Type: application/json
+
+{
+    "username": "admin",
+    "password": "password123"
+}
+
+### 4. Failed authentication - wrong password (for alerts generation)
+POST {{base_url}}/login
+Content-Type: application/json
+
+{
+    "username": "admin",
+    "password": "wrongpassword"
+}
+
+### 5. Failed authentication - non-existent user
+POST {{base_url}}/login
+Content-Type: application/json
+
+{
+    "username": "hacker",
+    "password": "123456"
+}
+
+### 6. Failed authentication - missing password
+POST {{base_url}}/login
+Content-Type: application/json
+
+{
+    "username": "admin"
+}
+
+### 7. Failed authentication - empty request body
+POST {{base_url}}/login
+Content-Type: application/json
+
+### 8. Multiple failed attempts to simulate brute-force attack
+### (Execute these requests several times in a row to generate alerts)
+
+POST {{base_url}}/login
+Content-Type: application/json
+
+{
+    "username": "admin",
+    "password": "hack1"
+}
+
+###
+POST {{base_url}}/login
+Content-Type: application/json
+
+{
+    "username": "admin",
+    "password": "hack2"
+}
+
+###
+POST {{base_url}}/login
+Content-Type: application/json
+
+{
+    "username": "admin",
+    "password": "hack3"
+}
+
+###
+POST {{base_url}}/login
+Content-Type: application/json
+
+{
+    "username": "admin",
+    "password": "hack4"
+}
+
+###
+POST {{base_url}}/login
+Content-Type: application/json
+
+{
+    "username": "admin",
+    "password": "hack5"
+}
+
+###
+POST {{base_url}}/login
+Content-Type: application/json
+
+{
+    "username": "admin",
+    "password": "hack6"
+}
+
+### Usage instructions:
+### 1. Replace {{base_url}} with your application's actual URL
+###    For local testing: http://localhost:8000
+###    For Azure App Service: https://your-app-name.azurewebsites.net
+### 
+### 2. To simulate brute-force attack, execute requests from section 8
+###    quickly one after another (more than 5 times in 5 minutes)
+###
+### 3. Each request generates logs that will be visible in Azure Monitor
