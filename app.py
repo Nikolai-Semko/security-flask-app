@@ -7,11 +7,11 @@ import os
 
 app = Flask(__name__)
 
-# Настройка логирования
+# Log configuration
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# В памяти хранилище для логов
+# Log storage in memory
 security_logs = []
 
 @app.route('/')
@@ -57,7 +57,7 @@ def simulate_sql_injection():
         data = request.get_json()
         query = data.get('query', '')
         
-        # Логируем попытку атаки
+        # Create attack attempt logs
         log_entry = {
             'timestamp': datetime.now().isoformat(),
             'type': 'sql_injection_attempt',

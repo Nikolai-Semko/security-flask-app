@@ -1,0 +1,260 @@
+// Azure Log Analytics KQL Queries for Security Lab
+// Execute these queries in Azure Portal → law-security-lab → Logs
+// Use AFTER running tests from test-app.http file
+
+//=====================================
+// 1. BASIC LOG ANALYSIS
+//=====================================
+
+// All HTTP requests in last 2 hours
+AppServiceHTTPLogs
+| where TimeGenerated > ago(2h)
+| project TimeGenerated, CsMethod, CsUriStem, ScStatus, CsUserAgent
+| order by TimeGenerated desc
+
+// All requests to our application (filter by host)
+AppServiceHTTPLogs
+| where TimeGenerated > ago(2h)
+| where CsHost contains "security-lab-93823-20250618"
+| project TimeGenerated, CsMethod, CsUriStem, ScStatus
+| order by TimeGenerated desc
+
+//=====================================
+// 2. SECURITY ATTACK DETECTION
+//=====================================
+
+// All attack attempts (SQL + XSS)
+AppServiceHTTPLogs
+| where TimeGenerated > ago(2h)
+| where CsUriStem contains "attack"
+| project TimeGenerated, CsMethod, CsUriStem, ScStatus, CsUserAgent
+| order by TimeGenerated desc
+
+// SQL Injection attacks only
+AppServiceHTTPLogs
+| where TimeGenerated > ago(2h)
+| where CsUriStem contains "attack/sql"
+| project TimeGenerated, CsMethod, CsUriStem, ScStatus
+| order by TimeGenerated desc
+
+// XSS attacks only
+AppServiceHTTPLogs
+| where TimeGenerated > ago(2h)
+| where CsUriStem contains "attack/xss"
+| project TimeGenerated, CsMethod, CsUriStem, ScStatus
+| order by TimeGenerated desc
+
+//=====================================
+// 3. ATTACK PATTERN ANALYSIS
+//=====================================
+
+// Attack frequency by 5-minute intervals
+AppServiceHTTPLogs
+| where TimeGenerated > ago(2h)
+| where CsUriStem contains "attack"
+| summarize AttackCount = count() by bin(TimeGenerated, 5m)
+| order by TimeGenerated desc
+
+// Attack types distribution
+AppServiceHTTPLogs
+| where TimeGenerated > ago(24h)
+| where CsUriStem contains "attack"
+| summarize AttackCount = count() by AttackType = extract(@"attack/(\w+)", 1, CsUriStem)
+| order by AttackCount desc
+
+// SQL injection attack timeline
+AppServiceHTTPLogs
+| where TimeGenerated > ago(2h)
+| where CsUriStem contains "attack/sql"
+| summarize SQLAttacks = count() by bin(TimeGenerated, 5m)
+| order by TimeGenerated desc
+
+// XSS attack timeline  
+AppServiceHTTPLogs
+| where TimeGenerated > ago(2h)
+| where CsUriStem contains "attack/xss"
+| summarize XSSAttacks = count() by bin(TimeGenerated, 5m)
+| order by TimeGenerated desc
+
+//=====================================
+// 4. RESPONSE CODE ANALYSIS
+//=====================================
+
+// HTTP status codes distribution
+AppServiceHTTPLogs
+| where TimeGenerated > ago(2h)
+| summarize RequestCount = count() by ScStatus
+| order by RequestCount desc
+
+// Failed requests (4xx, 5xx errors)
+AppServiceHTTPLogs
+| where TimeGenerated > ago(2h)
+| where ScStatus >= 400
+| summarize ErrorCount = count() by ScStatus, CsUriStem
+| order by ErrorCount desc
+
+// Success rate for attack endpoints
+AppServiceHTTPLogs
+| where TimeGenerated > ago(2h)
+| where CsUriStem contains "attack"
+| summarize 
+    TotalRequests = count(),
+    SuccessfulRequests = countif(ScStatus == 200),
+    SuccessRate = round(100.0 * countif(ScStatus == 200) / count(), 2)
+| project TotalRequests, SuccessfulRequests, SuccessRate
+
+//=====================================
+// 5. PERFORMANCE ANALYSIS
+//=====================================
+
+// Average response time by endpoint
+AppServiceHTTPLogs
+| where TimeGenerated > ago(2h)
+| summarize AvgResponseTime = avg(TimeTaken), RequestCount = count() by CsUriStem
+| order by AvgResponseTime desc
+
+// Performance impact during attacks
+AppServiceHTTPLogs
+| where TimeGenerated > ago(2h)
+| summarize 
+    AvgResponseTime = avg(TimeTaken), 
+    RequestCount = count() 
+    by bin(TimeGenerated, 5m)
+| order by TimeGenerated desc
+
+// Slowest requests
+AppServiceHTTPLogs
+| where TimeGenerated > ago(2h)
+| where TimeTaken > 1000  // requests taking more than 1 second
+| project TimeGenerated, CsUriStem, TimeTaken, ScStatus
+| order by TimeTaken desc
+
+//=====================================
+// 6. SECURITY MONITORING ALERTS
+//=====================================
+
+// High volume SQL injection alert (>10 in 5 minutes)
+AppServiceHTTPLogs
+| where TimeGenerated > ago(5m)
+| where CsUriStem contains "attack/sql"
+| summarize AttackCount = count()
+| where AttackCount > 10
+
+// Rapid XSS attack alert (>5 in 5 minutes)
+AppServiceHTTPLogs
+| where TimeGenerated > ago(5m)
+| where CsUriStem contains "attack/xss"
+| summarize AttackCount = count()
+| where AttackCount > 5
+
+// Application health alert (health endpoint failures)
+AppServiceHTTPLogs
+| where TimeGenerated > ago(5m)
+| where CsUriStem contains "/api/health"
+| where ScStatus != 200
+| summarize FailedHealthChecks = count()
+| where FailedHealthChecks > 0
+
+// Multiple attack types from same source
+AppServiceHTTPLogs
+| where TimeGenerated > ago(30m)
+| where CsUriStem contains "attack"
+| summarize AttackTypes = dcount(CsUriStem), TotalAttacks = count() by CIp
+| where AttackTypes > 1
+| order by TotalAttacks desc
+
+//=====================================
+// 7. DETAILED FORENSICS
+//=====================================
+
+// Top attacking IP addresses
+AppServiceHTTPLogs
+| where TimeGenerated > ago(24h)
+| where CsUriStem contains "attack"
+| summarize AttackCount = count() by CIp
+| order by AttackCount desc
+| take 10
+
+// User agent analysis (potential bot detection)
+AppServiceHTTPLogs
+| where TimeGenerated > ago(2h)
+| where CsUriStem contains "attack"
+| summarize AttackCount = count() by CsUserAgent
+| order by AttackCount desc
+
+// Request size analysis
+AppServiceHTTPLogs
+| where TimeGenerated > ago(2h)
+| where CsUriStem contains "attack"
+| summarize AvgBytes = avg(CsBytes), MaxBytes = max(CsBytes) by CsUriStem
+| order by AvgBytes desc
+
+//=====================================
+// 8. CONSOLE LOGS ANALYSIS
+//=====================================
+
+// Application console logs
+AppServiceConsoleLogs
+| where TimeGenerated > ago(2h)
+| project TimeGenerated, ResultDescription
+| order by TimeGenerated desc
+
+// Error logs only
+AppServiceConsoleLogs
+| where TimeGenerated > ago(2h)
+| where ResultDescription contains "ERROR" or ResultDescription contains "Exception"
+| project TimeGenerated, ResultDescription
+| order by TimeGenerated desc
+
+//=====================================
+// 9. CUSTOM SECURITY QUERIES
+//=====================================
+
+// Detect potential brute force patterns
+AppServiceHTTPLogs
+| where TimeGenerated > ago(30m)
+| where CsUriStem contains "attack"
+| summarize AttackCount = count() by CIp, bin(TimeGenerated, 1m)
+| where AttackCount > 5
+| order by TimeGenerated desc, AttackCount desc
+
+// Unusual request patterns (non-standard methods, headers)
+AppServiceHTTPLogs
+| where TimeGenerated > ago(2h)
+| where CsMethod !in ("GET", "POST", "PUT", "DELETE", "HEAD", "OPTIONS")
+| project TimeGenerated, CsMethod, CsUriStem, CsUserAgent
+
+// Large payload analysis (potential data exfiltration attempts)
+AppServiceHTTPLogs
+| where TimeGenerated > ago(2h)
+| where CsBytes > 10000  // requests larger than 10KB
+| project TimeGenerated, CsUriStem, CsBytes, ScStatus
+| order by CsBytes desc
+
+//=====================================
+// 10. DASHBOARD QUERIES
+//=====================================
+
+// Attack summary for dashboard tile
+AppServiceHTTPLogs
+| where TimeGenerated > ago(24h)
+| where CsUriStem contains "attack"
+| summarize 
+    SQLInjections = countif(CsUriStem contains "sql"),
+    XSSAttacks = countif(CsUriStem contains "xss"),
+    TotalAttacks = count(),
+    UniqueIPs = dcount(CIp)
+
+// Hourly attack trends
+AppServiceHTTPLogs
+| where TimeGenerated > ago(24h)
+| where CsUriStem contains "attack"
+| summarize AttackCount = count() by bin(TimeGenerated, 1h)
+| order by TimeGenerated desc
+
+// Current application status
+AppServiceHTTPLogs
+| where TimeGenerated > ago(5m)
+| where CsUriStem contains "/api/health"
+| summarize HealthChecks = count(), LastStatus = arg_max(TimeGenerated, ScStatus)
+| project HealthChecks, LastHealthCheck = LastStatus.TimeGenerated, Status = LastStatus.ScStatus
