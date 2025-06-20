@@ -442,10 +442,6 @@ jobs:
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
 ## ⚠️ Disclaimer
 
 This application is for educational and demonstration purposes only. The intentional vulnerabilities should never be deployed in production environments. Use only in controlled, isolated environments for security testing and education.
